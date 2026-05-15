@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/example",
-    "packages/flash-calendar"
+    "packages/*"
   ],
   "scripts": {
     "dev": "turbo dev",

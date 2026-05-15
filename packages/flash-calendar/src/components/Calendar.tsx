@@ -62,12 +62,12 @@ export interface CalendarProps extends UseCalendarParams {
   /**
    * The spacing between each calendar row (the month header, the week days row,
    * and the weeks row)
-   * @defaultValue 8
+   * @defaultValue 4
    */
   calendarRowVerticalSpacing?: number;
   /**
    * The spacing between each day in the weeks row.
-   * @defaultValue 8
+   * @defaultValue 4
    */
   calendarRowHorizontalSpacing?: number;
   /**
@@ -108,8 +108,8 @@ export interface CalendarProps extends UseCalendarParams {
 const BaseCalendar = memo(function BaseCalendar(props: CalendarProps) {
   const {
     calendarInstanceId,
-    calendarRowVerticalSpacing = 8,
-    calendarRowHorizontalSpacing = 8,
+    calendarRowVerticalSpacing = 4,
+    calendarRowHorizontalSpacing = 4,
     calendarDayHeight = 32,
     calendarMonthHeaderHeight = 20,
     calendarWeekHeaderHeight = calendarDayHeight,

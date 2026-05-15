@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { memo, type ReactNode } from "react";
 import { useCallback, useMemo } from "react";
 import type { TextProps, TextStyle, ViewStyle } from "react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -7,8 +7,18 @@ import type { BaseTheme } from "@/helpers/tokens";
 import type { CalendarDayMetadata } from "@/hooks/useCalendar";
 import { useOptimizedDayMetadata } from "@/hooks/useOptimizedDayMetadata";
 import { useTheme } from "@/hooks/useTheme";
+import { abbreviateFare } from "@/helpers/numbers";
 
 import type { PressableLike } from "./Calendar";
+
+/**
+ * The base calendar item day component. This component is responsible for
+ * rendering each day cell, along with its event handlers.
+ *
+ * This is not meant to be used directly. Instead, use the
+ * `CalendarItemDayWithContainer`, since it also includes the spacing between
+ * each day.
+ */
 
 // react-native-web/overrides.ts
 declare module "react-native" {
@@ -32,17 +42,19 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   dayColumn: {
-    flexDirection: "column",
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   dayText: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 12,
+    fontWeight: "semibold",
     color: "#000",
   },
   lunarText: {
     fontSize: 10,
     color: "#9e9d9dff",
-    marginTop: -2,
   },
   airlineBadge: {
     backgroundColor: "#fdfdfdff",
@@ -61,7 +73,7 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
   },
   priceText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "bold",
     color: "#000",
   },
@@ -84,8 +96,7 @@ interface DayTheme {
 type CalendarItemDayTheme = Record<
   DayState,
   (params: {
-    isStartOfRange: boolean;
-    isEndOfRange: boolean;
+    isSelected: boolean;
     isPressed: boolean;
     isHovered?: boolean;
     isFocused?: boolean;
@@ -99,7 +110,7 @@ const buildBaseStyles = (theme: BaseTheme): CalendarItemDayTheme => {
   };
 
   return {
-    active: ({ isPressed, isHovered, isStartOfRange, isEndOfRange }) => {
+    active: ({ isPressed, isHovered }) => {
       const baseStyles: DayTheme & { container: ViewStyle } =
         isPressed || isHovered
           ? {
@@ -123,18 +134,6 @@ const buildBaseStyles = (theme: BaseTheme): CalendarItemDayTheme => {
               },
             };
 
-      baseStyles.container.borderRadius = 0;
-      if (isStartOfRange) {
-        baseStyles.container.borderTopLeftRadius = 16;
-        baseStyles.container.borderBottomLeftRadius = 16;
-      }
-      if (isEndOfRange) {
-        baseStyles.container.borderTopRightRadius = 16;
-        baseStyles.container.borderBottomRightRadius = 16;
-      }
-      if (!isStartOfRange && !isEndOfRange) {
-        baseStyles.container.borderRadius = 0;
-      }
       return baseStyles;
     },
     disabled: () => ({
@@ -207,80 +206,75 @@ export interface CalendarItemDayProps {
   CalendarPressableComponent?: PressableLike;
 }
 
-/**
- * The base calendar item day component. This component is responsible for
- * rendering each day cell, along with its event handlers.
- *
- * This is not meant to be used directly. Instead, use the
- * `CalendarItemDayWithContainer`, since it also includes the spacing between
- * each day.
- */
-import { abbreviateFare } from "@/helpers/numbers";
+export const CalendarItemDay = memo(
+  ({
+    onPress,
+    theme,
+    height,
+    metadata,
+    CalendarPressableComponent = Pressable as PressableLike,
+  }: CalendarItemDayProps) => {
+    const baseTheme = useTheme();
 
-export const CalendarItemDay = ({
-  onPress,
-  theme,
-  height,
-  metadata,
-  CalendarPressableComponent = Pressable as PressableLike,
-}: CalendarItemDayProps) => {
-  const baseTheme = useTheme();
+    const handlePress = useCallback(() => {
+      onPress(metadata.id);
+    }, [metadata.id, onPress]);
 
-  const handlePress = useCallback(() => {
-    onPress(metadata.id);
-  }, [metadata.id, onPress]);
+    const { price, airline, isCheapest, isMostExpensive } = metadata.data ?? {};
 
-  const { price, airline, isCheapest, isMostExpensive } = metadata.data ?? {};
+    const formattedPrice = abbreviateFare(price);
+    const displayAirline = airline ?? "--";
+    const isPriceEmpty = formattedPrice === "--";
+    const isAirlineEmpty = displayAirline === "--";
 
-  const backgroundColor = useMemo(() => {
-    if (isCheapest) return "#E8F5E9"; // Very light green
-    if (isMostExpensive) return "#FFEBEE"; // Very light red
-    return "#fafafaff"; // Darker grey requested by user
-  }, [isCheapest, isMostExpensive]);
+    const backgroundColor = useMemo(() => {
+      if (isPriceEmpty) return "#fafafa";
+      if (isCheapest) return "#E8F5E9"; // Very light green
+      if (isMostExpensive) return "#FFEBEE"; // Very light red
+      return "#f2f2f2";
+    }, [isCheapest, isMostExpensive, isPriceEmpty]);
 
-  const formattedPrice = abbreviateFare(price);
-  const displayAirline = airline ?? "--";
-  const isPriceEmpty = formattedPrice === "--";
-  const isAirlineEmpty = displayAirline === "--";
-
-  return (
-    <CalendarPressableComponent
-      disabled={metadata.state === "disabled"}
-      onPress={handlePress}
-      style={({ pressed: isPressed }) => [
-        styles.baseContainer,
-        {
-          height,
-          backgroundColor: isPressed
-            ? baseTheme.colors.background.tertiary
-            : backgroundColor,
-          opacity: metadata.state === "disabled" ? 0.3 : 1,
-        },
-        theme?.base?.({ ...metadata, isPressed }).container,
-        theme?.[metadata.state]?.({ ...metadata, isPressed }).container,
-      ]}
-    >
-      <View style={styles.topRow}>
-        <View style={styles.dayColumn}>
-          <Text style={styles.dayText}>{metadata.displayLabel}</Text>
-          <Text style={styles.lunarText}>{metadata.displayLabel}</Text>
-        </View>
-        <View style={styles.airlineBadge}>
+    return (
+      <CalendarPressableComponent
+        disabled={metadata.state === "disabled" || isPriceEmpty}
+        onPress={handlePress}
+        style={({ pressed: isPressed }) => [
+          styles.baseContainer,
+          {
+            height,
+            backgroundColor: isPressed
+              ? baseTheme.colors.background.tertiary
+              : backgroundColor,
+            opacity: metadata.state === "disabled" ? 0.3 : 1,
+          },
+          theme?.base?.({ ...metadata, isPressed }).container,
+          theme?.[metadata.state]?.({ ...metadata, isPressed }).container,
+        ]}
+      >
+        <View style={styles.topRow}>
+          <View style={styles.dayColumn}>
+            <Text style={styles.dayText}>{metadata.displayLabel}</Text>
+            <Text style={styles.lunarText}>{metadata.displayLabel}</Text>
+          </View>
+          {/* <View style={styles.airlineBadge}>
           <Text
             style={[styles.airlineText, isAirlineEmpty && styles.emptyText]}
           >
             {displayAirline}
           </Text>
+        </View> */}
         </View>
-      </View>
-      <View style={styles.priceRow}>
-        <Text style={[styles.priceText, isPriceEmpty && styles.emptyTextPrice]}>
-          {formattedPrice}
-        </Text>
-      </View>
-    </CalendarPressableComponent>
-  );
-};
+        <View style={styles.priceRow}>
+          <Text
+            style={[styles.priceText, isPriceEmpty && styles.emptyTextPrice]}
+          >
+            {formattedPrice}
+          </Text>
+        </View>
+      </CalendarPressableComponent>
+    );
+  }
+);
 
 interface CalendarItemDayContainerTheme {
   /** An empty view that acts as a spacer between each day. The spacing is
@@ -310,57 +304,30 @@ export interface CalendarItemDayContainerProps {
   metadata?: CalendarDayMetadata;
 }
 
-export const CalendarItemDayContainer = ({
-  children,
-  isStartOfWeek,
-  shouldShowActiveDayFiller,
-  theme,
-  daySpacing,
-  dayHeight,
-  metadata,
-}: CalendarItemDayContainerProps) => {
-  const baseTheme = useTheme();
-  const spacerStyles = useMemo<ViewStyle>(() => {
-    return {
-      position: "relative",
-      marginLeft: isStartOfWeek ? 0 : daySpacing,
-      flex: 1,
-      height: dayHeight,
-      ...theme?.spacer,
-    };
-  }, [dayHeight, daySpacing, isStartOfWeek, theme?.spacer]);
-
-  const activeDayFiller = useMemo<ViewStyle | null>(() => {
-    if (!shouldShowActiveDayFiller) {
-      return null;
-    }
-
-    return {
-      position: "absolute",
-      top: 0,
-      bottom: 0,
-      right: -(daySpacing + 1), // +1 to cover the 1px gap
-      width: daySpacing + 2, // +2 to cover the 1px gap (distributes evenly on both sides)
-      backgroundColor: baseTheme.colors.background.inverse.primary,
-      ...(typeof theme?.activeDayFiller === "function" && !!metadata
-        ? theme.activeDayFiller(metadata)
-        : theme?.activeDayFiller),
-    };
-  }, [
-    baseTheme.colors.background.inverse.primary,
-    daySpacing,
-    metadata,
+export const CalendarItemDayContainer = memo(
+  ({
+    children,
+    isStartOfWeek,
     shouldShowActiveDayFiller,
     theme,
-  ]);
+    daySpacing,
+    dayHeight,
+    metadata,
+  }: CalendarItemDayContainerProps) => {
+    const baseTheme = useTheme();
+    const spacerStyles = useMemo<ViewStyle>(() => {
+      return {
+        position: "relative",
+        marginLeft: isStartOfWeek ? 0 : daySpacing,
+        flex: 1,
+        height: dayHeight,
+        ...theme?.spacer,
+      };
+    }, [dayHeight, daySpacing, isStartOfWeek, theme?.spacer]);
 
-  return (
-    <View style={spacerStyles}>
-      {children}
-      {activeDayFiller ? <View style={activeDayFiller} /> : null}
-    </View>
-  );
-};
+    return <View style={spacerStyles}>{children}</View>;
+  }
+);
 
 export interface CalendarItemDayWithContainerProps
   extends Omit<CalendarItemDayProps, "height">,
@@ -380,38 +347,35 @@ export interface CalendarItemDayWithContainerProps
   calendarInstanceId?: string;
 }
 
-export const CalendarItemDayWithContainer = ({
-  metadata: baseMetadata,
-  onPress,
-  theme,
-  dayHeight,
-  daySpacing,
-  containerTheme,
-  calendarInstanceId,
-  CalendarPressableComponent,
-}: CalendarItemDayWithContainerProps) => {
-  const metadata = useOptimizedDayMetadata(baseMetadata, calendarInstanceId);
+export const CalendarItemDayWithContainer = memo(
+  ({
+    metadata: baseMetadata,
+    onPress,
+    theme,
+    dayHeight,
+    daySpacing,
+    containerTheme,
+    calendarInstanceId,
+    CalendarPressableComponent,
+  }: CalendarItemDayWithContainerProps) => {
+    const metadata = useOptimizedDayMetadata(baseMetadata, calendarInstanceId);
 
-  return (
-    <CalendarItemDayContainer
-      dayHeight={dayHeight}
-      daySpacing={daySpacing}
-      isStartOfWeek={metadata.isStartOfWeek}
-      metadata={metadata}
-      shouldShowActiveDayFiller={
-        metadata.isRangeValid && !metadata.isEndOfWeek
-          ? !metadata.isEndOfRange
-          : false
-      }
-      theme={containerTheme}
-    >
-      <CalendarItemDay
-        CalendarPressableComponent={CalendarPressableComponent}
-        height={dayHeight}
+    return (
+      <CalendarItemDayContainer
+        dayHeight={dayHeight}
+        daySpacing={daySpacing}
+        isStartOfWeek={metadata.isStartOfWeek}
         metadata={metadata}
-        onPress={onPress}
-        theme={theme}
-      />
-    </CalendarItemDayContainer>
-  );
-};
+        theme={containerTheme}
+      >
+        <CalendarItemDay
+          CalendarPressableComponent={CalendarPressableComponent}
+          height={dayHeight}
+          metadata={metadata}
+          onPress={onPress}
+          theme={theme}
+        />
+      </CalendarItemDayContainer>
+    );
+  }
+);

@@ -17,12 +17,12 @@ export const abbreviateFare = (fare: number | undefined | null) => {
 
   const billion = fare / 1_000_000_000;
   if (billion >= 1) {
-    return Number(billion.toFixed(2)) + "t";
+    return Number(billion.toFixed(1)) + "t";
   }
 
   const millions = fare / 1_000_000;
   if (millions >= 1) {
-    return Number(millions.toFixed(2)) + "tr";
+    return Number(millions.toFixed(1)) + "tr";
   }
 
   const k = fare / 1_000;

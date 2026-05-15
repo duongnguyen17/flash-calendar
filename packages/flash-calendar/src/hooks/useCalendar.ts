@@ -32,14 +32,10 @@ interface CalendarDayStateFields {
   isDisabled: boolean;
   /** Is this the current day? */
   isToday: boolean;
-  /** Is this the start of a range? */
-  isStartOfRange: boolean;
-  /**  Is this the end of a range? */
-  isEndOfRange: boolean;
+  /** Is this day selected? */
+  isSelected: boolean;
   /** The state of the day */
   state: DayState;
-  /** Is the range valid (has both start and end dates set)? */
-  isRangeValid: boolean;
 }
 
 /**
@@ -173,20 +169,10 @@ export const getStateFields = ({
   calendarMaxDateId,
   calendarDisabledDateIds,
 }: GetStateFields): CalendarDayStateFields => {
-  const activeRange = calendarActiveDateRanges?.find(({ startId, endId }) => {
-    // Regular range
-    if (startId && endId) {
-      return id >= startId && id <= endId;
-    } else if (startId) {
-      return id === startId;
-    } else if (endId) {
-      return id === endId;
-    }
-    return false;
-  });
-
-  const isRangeValid =
-    activeRange?.startId !== undefined && activeRange.endId !== undefined;
+  const isSelected =
+    calendarActiveDateRanges?.some(
+      ({ startId, endId }) => id === startId || id === endId
+    ) ?? false;
 
   const isDisabled =
     (calendarDisabledDateIds?.includes(id) ||
@@ -195,7 +181,7 @@ export const getStateFields = ({
 
   const isToday = todayId === id;
 
-  const state: DayState = activeRange
+  const state: DayState = isSelected
     ? ("active" as const)
     : isDisabled
     ? "disabled"
@@ -204,9 +190,7 @@ export const getStateFields = ({
     : "idle";
 
   return {
-    isStartOfRange: id === activeRange?.startId,
-    isEndOfRange: id === activeRange?.endId,
-    isRangeValid,
+    isSelected,
     state,
     isDisabled,
     isToday,

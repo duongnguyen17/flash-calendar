@@ -128,7 +128,7 @@ export const CalendarList = memo(
       // Spacings
       calendarSpacing = 20,
       calendarRowHorizontalSpacing,
-      calendarRowVerticalSpacing = 8,
+      calendarRowVerticalSpacing = 4,
 
       // Heights
       calendarMonthHeaderHeight = 20,
