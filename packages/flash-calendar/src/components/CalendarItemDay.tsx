@@ -20,14 +20,58 @@ declare module "react-native" {
 
 const styles = StyleSheet.create({
   baseContainer: {
-    padding: 6,
+    padding: 4,
+    borderRadius: 8,
+    flex: 1,
+    justifyContent: "space-between",
+    backgroundColor: "#eceaeaff",
+  },
+  topRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  dayColumn: {
+    flexDirection: "column",
+  },
+  dayText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  lunarText: {
+    fontSize: 10,
+    color: "#9e9d9dff",
+    marginTop: -2,
+  },
+  airlineBadge: {
+    backgroundColor: "#fdfdfdff",
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  airlineText: {
+    fontSize: 10,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  priceRow: {
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 16,
-    flex: 1,
+    paddingBottom: 2,
   },
-  baseContent: {
-    textAlign: "center",
+  priceText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  emptyText: {
+    fontSize: 8,
+    fontWeight: "300",
+  },
+  emptyTextPrice: {
+    fontSize: 10,
+    fontWeight: "300",
   },
 });
 
@@ -140,8 +184,8 @@ const buildBaseStyles = (theme: BaseTheme): CalendarItemDayTheme => {
 };
 
 export interface CalendarItemDayProps {
-  children: ReactNode;
   onPress: (id: string) => void;
+
   metadata: CalendarDayMetadata;
   theme?: Partial<
     Record<
@@ -171,78 +215,69 @@ export interface CalendarItemDayProps {
  * `CalendarItemDayWithContainer`, since it also includes the spacing between
  * each day.
  */
+import { abbreviateFare } from "@/helpers/numbers";
+
 export const CalendarItemDay = ({
   onPress,
-  children,
   theme,
   height,
   metadata,
-  textProps,
   CalendarPressableComponent = Pressable as PressableLike,
 }: CalendarItemDayProps) => {
   const baseTheme = useTheme();
-  const baseStyles = useMemo(() => {
-    return buildBaseStyles(baseTheme);
-  }, [baseTheme]);
 
   const handlePress = useCallback(() => {
     onPress(metadata.id);
   }, [metadata.id, onPress]);
 
+  const { price, airline, isCheapest, isMostExpensive } = metadata.data ?? {};
+
+  const backgroundColor = useMemo(() => {
+    if (isCheapest) return "#E8F5E9"; // Very light green
+    if (isMostExpensive) return "#FFEBEE"; // Very light red
+    return "#fafafaff"; // Darker grey requested by user
+  }, [isCheapest, isMostExpensive]);
+
+  const formattedPrice = abbreviateFare(price);
+  const displayAirline = airline ?? "--";
+  const isPriceEmpty = formattedPrice === "--";
+  const isAirlineEmpty = displayAirline === "--";
+
   return (
     <CalendarPressableComponent
       disabled={metadata.state === "disabled"}
       onPress={handlePress}
-      style={({
-        pressed: isPressed,
-        hovered: isHovered,
-        focused: isFocused,
-      }) => {
-        const params = {
-          isPressed,
-          isHovered,
-          isFocused,
-          isEndOfRange: metadata.isEndOfRange ?? false,
-          isStartOfRange: metadata.isStartOfRange ?? false,
-        };
-        const { container } = baseStyles[metadata.state](params);
-        return {
-          ...container,
+      style={({ pressed: isPressed }) => [
+        styles.baseContainer,
+        {
           height,
-          ...theme?.base?.({ ...metadata, isPressed }).container,
-          ...theme?.[metadata.state]?.({ ...metadata, isPressed }).container,
-        };
-      }}
+          backgroundColor: isPressed
+            ? baseTheme.colors.background.tertiary
+            : backgroundColor,
+          opacity: metadata.state === "disabled" ? 0.3 : 1,
+        },
+        theme?.base?.({ ...metadata, isPressed }).container,
+        theme?.[metadata.state]?.({ ...metadata, isPressed }).container,
+      ]}
     >
-      {({ pressed: isPressed, hovered: isHovered, focused: isFocused }) => {
-        const params = {
-          isPressed,
-          isHovered,
-          isFocused,
-          isEndOfRange: metadata.isEndOfRange ?? false,
-          isStartOfRange: metadata.isStartOfRange ?? false,
-        };
-        const { content } = baseStyles[metadata.state](params);
-        return (
+      <View style={styles.topRow}>
+        <View style={styles.dayColumn}>
+          <Text style={styles.dayText}>{metadata.displayLabel}</Text>
+          <Text style={styles.lunarText}>{metadata.displayLabel}</Text>
+        </View>
+        <View style={styles.airlineBadge}>
           <Text
-            {...textProps}
-            style={{
-              ...content,
-              ...(textProps?.style ?? ({} as object)),
-              ...theme?.base?.({ ...metadata, isPressed, isHovered, isFocused })
-                .content,
-              ...theme?.[metadata.state]?.({
-                ...metadata,
-                isPressed,
-                isHovered,
-                isFocused,
-              }).content,
-            }}
+            style={[styles.airlineText, isAirlineEmpty && styles.emptyText]}
           >
-            {children}
+            {displayAirline}
           </Text>
-        );
-      }}
+        </View>
+      </View>
+      <View style={styles.priceRow}>
+        <Text style={[styles.priceText, isPriceEmpty && styles.emptyTextPrice]}>
+          {formattedPrice}
+        </Text>
+      </View>
     </CalendarPressableComponent>
   );
 };
@@ -346,7 +381,6 @@ export interface CalendarItemDayWithContainerProps
 }
 
 export const CalendarItemDayWithContainer = ({
-  children,
   metadata: baseMetadata,
   onPress,
   theme,
@@ -377,9 +411,7 @@ export const CalendarItemDayWithContainer = ({
         metadata={metadata}
         onPress={onPress}
         theme={theme}
-      >
-        {children}
-      </CalendarItemDay>
+      />
     </CalendarItemDayContainer>
   );
 };

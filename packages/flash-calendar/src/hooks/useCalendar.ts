@@ -43,6 +43,16 @@ interface CalendarDayStateFields {
 }
 
 /**
+ * Custom data for each day.
+ */
+export interface CalendarDayData {
+  price?: number | null;
+  airline?: string | null;
+  isCheapest?: boolean;
+  isMostExpensive?: boolean;
+}
+
+/**
  * The type of each day in the calendar. Has a few pre-computed properties to
  * help increase re-rendering performance.
  */
@@ -65,6 +75,9 @@ export type CalendarDayMetadata = {
 
   /** The ID of this date is the `YYYY-MM-DD` representation */
   id: string;
+
+  /** Custom data for this day */
+  data?: CalendarDayData;
 } & CalendarDayStateFields;
 
 /**
@@ -132,6 +145,10 @@ export interface UseCalendarParams {
    * unless they are part of an active range.
    */
   calendarDisabledDateIds?: string[];
+  /**
+   * Custom data for each day, indexed by date ID (`YYYY-MM-DD`).
+   */
+  calendarDayData?: Record<string, CalendarDayData>;
 }
 
 type GetStateFields = Pick<
@@ -269,7 +286,9 @@ export const buildCalendar = (params: UseCalendarParams) => {
             todayId,
             id,
           }),
+          data: params.calendarDayData?.[id],
         };
+
         dayToIterate = addDays(dayToIterate, 1);
         return dayShape;
       }),
@@ -298,7 +317,9 @@ export const buildCalendar = (params: UseCalendarParams) => {
         todayId,
         id,
       }),
+      data: params.calendarDayData?.[id],
     });
+
     dayToIterate = addDays(dayToIterate, 1);
   }
 
@@ -323,7 +344,9 @@ export const buildCalendar = (params: UseCalendarParams) => {
           todayId,
           id,
         }),
+        data: params.calendarDayData?.[id],
       };
+
       dayToIterate = addDays(dayToIterate, 1);
       return dayShape;
     })

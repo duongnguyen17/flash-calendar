@@ -176,9 +176,7 @@ const BaseCalendar = memo(function BaseCalendar(props: CalendarProps) {
                 metadata={dayProps}
                 onPress={onCalendarDayPress}
                 theme={theme?.itemDay}
-              >
-                {dayProps.displayLabel}
-              </CalendarItemDayWithContainer>
+              />
             );
           })}
         </CalendarRowWeek>

@@ -9,3 +9,22 @@
  */
 export const range = (start: number, stop: number, step = 1) =>
   Array.from({ length: (stop - start) / step + 1 }, (_, i) => start + i * step);
+
+export const abbreviateFare = (fare: number | undefined | null) => {
+  if (!fare) {
+    return "--";
+  }
+
+  const billion = fare / 1_000_000_000;
+  if (billion >= 1) {
+    return Number(billion.toFixed(2)) + "t";
+  }
+
+  const millions = fare / 1_000_000;
+  if (millions >= 1) {
+    return Number(millions.toFixed(2)) + "tr";
+  }
+
+  const k = fare / 1_000;
+  return Math.round(k) + "k";
+};

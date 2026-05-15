@@ -1,14 +1,18 @@
 {
-  "extends": "@marceloterreiro/tsconfig/base",
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "jsx": "react-native",
+    "strict": true,
     "baseUrl": ".",
     "paths": {
       "@marceloterreiro/flash-calendar": ["../../packages/flash-calendar/src"],
       "@/*": ["../../packages/flash-calendar/src/*"]
     },
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true
   },
-
-  "include": ["src", ".rnstorybook"],
+  "include": ["src"],
   "exclude": ["node_modules"]
 }
