@@ -61,6 +61,10 @@ The main `Calendar` component is actually a `CalendarList` powered by `@shopify/
 ## Integration Guide
 
 ### External Dependencies
+These libraries must be installed in your project:
+```bash
+npm install mitt @shopify/flash-list
+```
 *   `@shopify/flash-list`: For virtualized list performance.
 *   `mitt`: For the event-driven update system.
 
